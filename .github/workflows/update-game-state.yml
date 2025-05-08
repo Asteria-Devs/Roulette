@@ -44,5 +44,4 @@ jobs:
           git config user.email "github-actions@github.com"
           git add game-state.json
           git commit -m "Update game state"
-          git push
-
+          git push origin main  # Make sure to use the correct branch name here
