@@ -1,1 +1,48 @@
+name: Update Game State
+
+on:
+  repository_dispatch:
+    types: [place_bet]
+
+jobs:
+  update-state:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Update Game State
+        run: |
+          echo "Updating game state..."
+          GAME_FILE="game-state.json"
+          BET_COLOR="${{ github.event.client_payload.bet_color }}"
+          GAME_DATA=$(cat $GAME_FILE)
+          
+          # Extract current balance
+          BALANCE=$(echo $GAME_DATA | jq '.balance')
+          BALANCE=$((BALANCE - 100))
+
+          # Determine the winning color
+          WIN_COLOR=$([ $((RANDOM % 2)) -eq 0 ] && echo "red" || echo "black")
+          
+          # Update history
+          HISTORY=$(echo $GAME_DATA | jq '.history')
+          NEW_HISTORY=$(echo $HISTORY | jq ". + [\"$WIN_COLOR\"]")
+
+          # Update the balance based on win/loss
+          if [ "$BET_COLOR" = "$WIN_COLOR" ]; then
+            BALANCE=$((BALANCE + 200))
+          fi
+
+          # Update the game state file
+          jq ".balance=$BALANCE | .history=$NEW_HISTORY" $GAME_FILE > temp.json
+          mv temp.json $GAME_FILE
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add game-state.json
+          git commit -m "Update game state"
+          git push
 
